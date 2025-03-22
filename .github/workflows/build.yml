@@ -1,0 +1,38 @@
+name: Build and Release Wheel
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build-create-release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.8'
+      - name: Install Build Tools
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install setuptools wheel
+      - name: Build the Project
+        run: |
+          python setup.py bdist_wheel
+      - name: Extract Changelog
+        id: changelog
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          awk "/## v$VERSION/,0" CHANGELOG.md > changelog.txt
+          cat changelog.txt
+      - name: Create GitHub Release
+        run: gh release create $GITHUB_REF_NAME --notes-file changelog.txt
+        env:
+          GH_TOKEN: ${{ github.token }}
+      - name: Upload Build to Release
+        run: gh release upload $GITHUB_REF_NAME dist/*
+        env:
+          GH_TOKEN: ${{ github.token }}
