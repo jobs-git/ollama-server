@@ -1,25 +1,3 @@
-# MIT License
-
-# Copyright (c) 2025 James Guana
-
-# Permission is hereby granted, free of charge, to any person obtaining a copy
-# of this software and associated documentation files (the "Software"), to deal
-# in the Software without restriction, including without limitation the rights
-# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-# copies of the Software, and to permit persons to whom the Software is
-# furnished to do so, subject to the following conditions:
-
-# The above copyright notice and this permission notice shall be included in all
-# copies or substantial portions of the Software.
-
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-# SOFTWARE.
-
 import subprocess
 import sysconfig
 import os
@@ -57,16 +35,20 @@ def _parse_host (host=None):
 
     return f'{scheme}://{host}:{port}'
 
-def _check_server (url):
+def _check_server (url, connection_timeout = 0):
 
-    try:
-        response = requests.get(url)
-        if response.status_code == 200:
-            return True
-    except requests.exceptions.RequestException:
-        pass
+    start_time = time.time()
+    end_time = start_time + (connection_timeout or 0)
+    
+    while time.time() < end_time:
+        try:
+            response = requests.get(url)
+            if response.status_code == 200:
+                return True
+        except requests.exceptions.RequestException:
+            pass
 
-    print(f"No server detected at {url}")
+    print(f"No server detected at {url} after {connection_timeout} seconds.")
     return False
 
 def start():
@@ -84,13 +66,14 @@ def start():
 
     for attempt in range(1, max_retries + 1):
 
-        if _check_server(url):
+        if _check_server (url):
             print (f"Server running and accessible")
             return True
         else:
             print (f"Attempt {attempt}: Starting the server...")
-            subprocess.Popen("ollama serve", shell = True) #.wait ()
-            time.sleep(1)
+            subprocess.Popen("ollama serve", shell = True)
+            if _check_server (url, 5):
+                return True
 
     print("Exceeded maximum retries. The server could not be started.")
 
