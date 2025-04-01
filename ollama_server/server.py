@@ -51,6 +51,25 @@ def _check_server (url, connection_timeout = 0):
     print(f"No server detected at {url} after {connection_timeout} seconds.")
     return False
 
+def _download_and_install_ollama():
+    url = "https://ollama.com/download/ollama-linux-amd64.tgz"
+    download_path = "/tmp/ollama-linux-amd64.tgz"
+
+    urllib.request.urlretrieve(url, download_path)
+    print(f"Downloaded file to {download_path}")
+
+    bin_dir = sysconfig.get_paths()["scripts"]
+    parent_dir = os.getenv("OLLAMA_INSTALL_DIR") or os.path.dirname(bin_dir)
+
+    with tarfile.open(download_path, "r:gz") as tar:
+        tar.extractall(path=parent_dir)
+
+    print(f"Extracted and unpacked files to {parent_dir}")
+    print("Installation complete.")
+
+    os.remove(download_path)
+    print(f"Temporary file {download_path} deleted.")
+
 def start():
 
     bin_dir = sysconfig.get_paths()["scripts"]
@@ -85,22 +104,3 @@ def stop():
     # see: https://github.com/ollama/ollama/issues/9169
 
     return False
-
-def _download_and_install_ollama():
-    url = "https://ollama.com/download/ollama-linux-amd64.tgz"
-    download_path = "/tmp/ollama-linux-amd64.tgz"
-
-    urllib.request.urlretrieve(url, download_path)
-    print(f"Downloaded file to {download_path}")
-
-    bin_dir = sysconfig.get_paths()["scripts"]
-    parent_dir = os.getenv("OLLAMA_INSTALL_DIR") or os.path.dirname(bin_dir)
-
-    with tarfile.open(download_path, "r:gz") as tar:
-        tar.extractall(path=parent_dir)
-
-    print(f"Extracted and unpacked files to {parent_dir}")
-    print("Installation complete.")
-
-    os.remove(download_path)
-    print(f"Temporary file {download_path} deleted.")
